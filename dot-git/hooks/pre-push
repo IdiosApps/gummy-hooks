@@ -1,0 +1,74 @@
+#!/bin/sh
+
+###### Requirements
+# Have gum installed :) https://github.com/charmbracelet/gum#installation
+
+###### Config
+# This example would do formatting (+ checking)...
+# ... but you could run tests or whatever instead
+
+CMD_FMT_CHECK='format --check'
+CMD_FMT='format'
+
+###### Hook body
+
+$CMD_FMT_CHECK
+cmdFmtCheckRC=$?
+echo "checkFmt return code: $cmdFmtCheckRC"
+
+if [ $cmdFmtCheckRC == 0 ]
+then
+    exit 0;
+fi
+
+CHOICE_AMEND="commit_amend"
+CHOICE_FMT="commit_with_message_fmt"
+CHOICE_FMT_CUSTOM="commit_with_message_custom"
+CHOICE_IGNORE="ignore"
+
+commitChoice=$(gum choose $CHOICE_AMEND $CHOICE_FMT $CHOICE_FMT_CUSTOM $CHOICE_IGNORE)
+
+echo "chose:     >--    $commitChoice    <-- "
+
+if [ $commitChoice == $CHOICE_IGNORE ]
+then
+    exit 0;
+fi
+
+if [ $commitChoice == $CHOICE_AMEND ]
+then
+    $CMD_FMT
+    git status
+    gum confirm "Add & ammend commit?" && \
+        git add . && \
+        git commit --amend --reuse-message HEAD
+fi
+
+ 
+if [ $commitChoice == $CHOICE_FMT ]
+then
+    $CMD_FMT
+    git status
+    gum confirm "Add & Commit with message 'fmt'?" && \
+        git add .  && \
+        git commit -m "fmt"
+fi
+
+if [ $commitChoice == $CHOICE_FMT_CUSTOM ]
+then
+    $CMD_FMT
+    git status
+    
+    echo '{{ Color "99" "0" " Press CTRL+D to finish " }}' | gum format -t template
+    message=$(gum write --placeholder "enter your commit message...")
+    
+    echo "Your commit message:"
+    gum style \
+    --foreground 212 --border-foreground 212 --border double \
+    --align left --width 50 --margin "1 2" --padding "2 4" \
+    "$message"
+
+    gum confirm "Add & commit?" && \
+        git add .  && \
+        git commit -m "$message"
+fi
